@@ -40,6 +40,8 @@ def attr(elem, attr):
 
 WORD_SEPARATORS = re.compile(r'\s|\n|\r|\t|[^a-zA-Z0-9\-_]')
 
+INVERTED_INDEX = {}
+
 class crawler(object):
     """Represents 'Googlebot'. Populates a database by crawling and indexing
     a subset of the Internet.
@@ -182,7 +184,7 @@ class crawler(object):
         return urlparse.urljoin(parsed_url.geturl(), rel)
 
     def add_link(self, from_doc_id, to_doc_id):
-        print("in add_link")
+        #print("in add_link")
         """Add a link into the database, or increase the number of links between
         two pages in the database."""
         # TODO
@@ -217,7 +219,15 @@ class crawler(object):
         # TODO: knowing self._curr_doc_id and the list of all words and their
         #       font sizes (in self._curr_words), add all the words into the
         #       database for this document
-        print "    num words="+ str(len(self._curr_words))
+       
+        for word in self._curr_words:
+            word_id = self.word_id(word)
+            if word_id in INVERTED_INDEX:
+              INVERTED_INDEX[word_id].add(self._curr_doc_id)
+            else:
+              INVERTED_INDEX[word_id]= set()
+              INVERTED_INDEX[word_id].add(self._curr_doc_id)
+        #print "    num words="+ str(len(self._curr_words))
 
     def _increase_font_factor(self, factor):
         """Increade/decrease the current font size."""
@@ -337,7 +347,16 @@ class crawler(object):
                 if socket:
                     socket.close()
 
+    def get_inverted_index(self):
+      print "in get invereted"
+      return INVERTED_INDEX
+
+    def get_resolved_inverted_index(self):
+      RESOLVED_INVERTED_INDEX = {}
+      for  entry in INVERTED_INDEX:
+        RESOLVED_INVERTED_INDEX[self.word_id(entry.key)].add(self)
+
 if __name__ == "__main__":
     bot = crawler(None, "urls.txt")
     bot.crawl(depth=1)
-
+    bot.get_inverted_index()
