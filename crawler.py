@@ -39,8 +39,9 @@ def attr(elem, attr):
         return ""
 
 WORD_SEPARATORS = re.compile(r'\s|\n|\r|\t|[^a-zA-Z0-9\-_]')
-
 INVERTED_INDEX = {}
+WORD_LIST = {}
+LINK_LIST = {}
 
 class crawler(object):
     """Represents 'Googlebot'. Populates a database by crawling and indexing
@@ -133,14 +134,16 @@ class crawler(object):
         and then returns that newly inserted document's id."""
         ret_id = self._mock_next_doc_id
         self._mock_next_doc_id += 1
+        LINK_LIST[ret_id] = url
         return ret_id
     
     # TODO remove me in real version
-    def _mock_insert_word(self, word):
+    def _insert_word(self, word):
         """A function that pretends to inster a word into the lexicon db table
         and then returns that newly inserted word's id."""
         ret_id = self._mock_next_word_id
         self._mock_next_word_id += 1
+        WORD_LIST[ret_id] = word
         return ret_id
     
     def word_id(self, word):
@@ -153,7 +156,7 @@ class crawler(object):
         #       2) query the lexicon for the id assigned to this word, 
         #          store it in the word id cache, and return the id.
 
-        word_id = self._mock_insert_word(word)
+        word_id = self._insert_word(word)
         self._word_id_cache[word] = word_id
         return word_id
     
@@ -219,9 +222,8 @@ class crawler(object):
         # TODO: knowing self._curr_doc_id and the list of all words and their
         #       font sizes (in self._curr_words), add all the words into the
         #       database for this document
-       
         for word in self._curr_words:
-            word_id = self.word_id(word)
+            word_id = word[0]
             if word_id in INVERTED_INDEX:
               INVERTED_INDEX[word_id].add(self._curr_doc_id)
             else:
@@ -348,15 +350,23 @@ class crawler(object):
                     socket.close()
 
     def get_inverted_index(self):
-      print "in get invereted"
-      return INVERTED_INDEX
+        return INVERTED_INDEX
 
     def get_resolved_inverted_index(self):
-      RESOLVED_INVERTED_INDEX = {}
-      for  entry in INVERTED_INDEX:
-        RESOLVED_INVERTED_INDEX[self.word_id(entry.key)].add(self)
+        #asdf
+        print "in resolved"
+        RESOLVED_INVERTED_INDEX = {}
+        for  entry in INVERTED_INDEX:
+            word = WORD_LIST[entry]
+            doc_ids =  INVERTED_INDEX[entry]
+            resolved_set = set()
+            for doc_id  in doc_ids:
+                resolved_set.add(LINK_LIST[doc_id])
+            RESOLVED_INVERTED_INDEX[word] = resolved_set
+        return RESOLVED_INVERTED_INDEX
 
 if __name__ == "__main__":
     bot = crawler(None, "urls.txt")
     bot.crawl(depth=1)
-    bot.get_inverted_index()
+    print bot.get_inverted_index()
+    print bot.get_resolved_inverted_index()
