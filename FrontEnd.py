@@ -45,31 +45,32 @@ def do_search():
 
 
 	#test table
-	conn = sqlite3.connect('table.db')
-	c=conn.cursor()
+	#conn = sqlite3.connect('table.db')
+	#c=conn.cursor()
 	#c.execute('''CREATE TABLE test
 	#			(date text, name text)''')
 	#c.execute('INSERT INTO test VALUES ("2013-10-05", "Anmol")')
 	#c.execute('INSERT INTO test VALUES ("2013-10-07", "Vincent")')
-	conn.commit()
-	conn.close()
+	#conn.commit()
+	#conn.close()
 	
 	#get results from test table
-	conn = sqlite3.connect('table.db')
-	c=conn.cursor()
-	addedResult = ""
-	for row in c.execute('SELECT * FROM test ORDER BY date'):	
-		result = c.fetchone()
-		print (str(result))
-		addedResult += ("<br><br>" + str(result))
-		print (addedResult)
+	#conn = sqlite3.connect('table.db')
+	#c=conn.cursor()
+	#addedResult = ""
+	#for row in c.execute('SELECT * FROM test ORDER BY date'):	
+	#	result = c.fetchone()
+	#	print (str(result))
+	#	addedResult += ("<br><br>" + str(result))
+	#	print (addedResult)
 
 	#Display table results on page
 
 
 
+	return LogoString + "<br><br>" + "Search "+  "'%s' <br><br> %s "  %(userinput, printWordCounter) 
 
-	return LogoString + "<br><br>" + "Search "+  "'%s' <br><br> %s %s"  %(userinput, printWordCounter, addedResult) 
+#	return LogoString + "<br><br>" + "Search "+  "'%s' <br><br> %s %s"  %(userinput, printWordCounter, addedResult) 
 
 
 
