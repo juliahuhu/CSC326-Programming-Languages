@@ -27,6 +27,7 @@
 import urllib2
 import urlparse
 import sqlite3 as lite
+import pagerank
 from BeautifulSoup import *
 from collections import defaultdict
 import re
@@ -64,12 +65,15 @@ class crawler(object):
         self.cur.executescript("""
             DROP TABLE IF EXISTS Lexicon;
             DROP TABLE IF EXISTS DocIndex;
+            DROP TABLE IF EXISTS Links;
             CREATE TABLE IF NOT EXISTS 
             Lexicon(id INTEGER PRIMARY KEY, 
                     word TEXT);
             CREATE TABLE IF NOT EXISTS 
             DocIndex(id INTEGER PRIMARY KEY, 
-                    url TEXT);""")
+                    url TEXT);
+            CREATE TABLE IF NOT EXISTS 
+            Links(id INTEGER PRIMARY KEY, from_url INTEGER, to_url INTEGER);""")
         
         # functions to call when entering and exiting specific tags
         self._enter = defaultdict(lambda *a, **ka: self._visit_ignore)
@@ -214,10 +218,12 @@ class crawler(object):
         return urlparse.urljoin(parsed_url.geturl(), rel)
 
     def add_link(self, from_doc_id, to_doc_id):
-        #print("in add_link")
         """Add a link into the database, or increase the number of links between
         two pages in the database."""
-        # TODO
+        print("in add_link")
+        if self.db_conn:
+            self.cur.execute("""INSERT INTO Links VALUES( null, '%s', '%s');""" %  (from_doc_id, to_doc_id))
+            self.db_conn.commit()
 
     def _visit_title(self, elem):
         """Called when visiting the <title> tag."""
@@ -396,12 +402,16 @@ if __name__ == "__main__":
     db_conn = lite.connect("table.db")
     bot = crawler(db_conn, "urls.txt")
     bot.crawl(depth=1)
+    cur = db_conn.cursor()
     #print bot.get_inverted_index()
     #print bot.get_resolved_inverted_index()
-    cur = db_conn.cursor()
-    cur.execute('SELECT * FROM Lexicon')
+    #cur.execute('SELECT * FROM Lexicon')
+    #data = cur.fetchall()
+    #print  str(data)
+    #cur.execute('SELECT * FROM DocIndex')
+    #data = cur.fetchall()
+    #print  str(data)
+    cur.execute('SELECT * FROM Links')
     data = cur.fetchall()
     print  str(data)
-    cur.execute('SELECT * FROM DocIndex')
-    data = cur.fetchall()
-    print  str(data)
+
