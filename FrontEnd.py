@@ -44,9 +44,8 @@ def do_search():
 		printWordCounter += ("<tr><td>" + key + """</td><td align="center">""" + str(value) + "</td></tr>")
 
 
-	#test table
-	#conn = sqlite3.connect('table.db')
-	#c=conn.cursor()
+	conn = sqlite3.connect('table.db')
+	c=conn.cursor()
 	#c.execute('''CREATE TABLE test
 	#			(date text, name text)''')
 	#c.execute('INSERT INTO test VALUES ("2013-10-05", "Anmol")')
@@ -54,23 +53,34 @@ def do_search():
 	#conn.commit()
 	#conn.close()
 	
-	#get results from test table
+	#get results from  table
 	#conn = sqlite3.connect('table.db')
 	#c=conn.cursor()
-	#addedResult = ""
-	#for row in c.execute('SELECT * FROM test ORDER BY date'):	
-	#	result = c.fetchone()
-	#	print (str(result))
-	#	addedResult += ("<br><br>" + str(result))
-	#	print (addedResult)
+	testword = "http://sdraper.ece.wisc.edu/researchDir/frame.html"
+	testword2 = ('nbsp',)
+	addedResult = ""
+	#for row in c.execute("SELECT * FROM Lexicon WHERE word = '%s'" % testword):	
+	#for row in c.execute('SELECT * FROM Lexicon, DocIndex, Links WHERE Lexicon.id = DocIndex.id AND Lexicon.id = Links.id'):	
+
+	for row in c.execute('SELECT url FROM Lexicon, DocIndex, Links WHERE Lexicon.id = DocIndex.id AND Lexicon.id = Links.id AND url = ?', testword2):	
+	#for row in c.execute('SELECT * FROM Lexicon, DocIndex, Links WHERE Lexicon.id = DocIndex.id AND Lexicon.id = Links.id AND Lexicon.word LIKE ?', [words[0]]):	
+		#add ORDER BY Page Rank
+		#result = c.fetchone()
+		#print (str(result))
+		print row
+		result = c.fetchall()
+		print (str(result))
+		#parse row to only actual work
+		addedResult += ("<br><br>" + str(row))
+		print (addedResult)
 
 	#Display table results on page
 
 
+	
+#	return LogoString + "<br><br>" + "Search "+  "'%s' <br><br> %s "  %(userinput, printWordCounter) 
 
-	return LogoString + "<br><br>" + "Search "+  "'%s' <br><br> %s "  %(userinput, printWordCounter) 
-
-#	return LogoString + "<br><br>" + "Search "+  "'%s' <br><br> %s %s"  %(userinput, printWordCounter, addedResult) 
+	return LogoString + "<br><br>" + "Search "+  "'%s' <br><br> %s %s"  %(userinput, printWordCounter, addedResult) 
 
 
 
