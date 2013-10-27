@@ -63,22 +63,26 @@ class crawler(object):
         self.db_conn = db_conn
         self.cur = self.db_conn.cursor()
         self.cur.executescript(
+            #"""
+            #DROP TABLE IF EXISTS Lexicon;
+            #DROP TABLE IF EXISTS DocIndex;
+            #DROP TABLE IF EXISTS Links;
+            #DROP TABLE IF EXISTS InvertedIndex;
+            #DROP TABLE IF EXISTS PageRank;
             """
-            DROP TABLE IF EXISTS Lexicon;
-            DROP TABLE IF EXISTS DocIndex;
-            DROP TABLE IF EXISTS Links;
-            DROP TABLE IF EXISTS InvertedIndex;
             CREATE TABLE IF NOT EXISTS 
-            Lexicon(id INTEGER PRIMARY KEY, 
+            Lexicon(word_id INTEGER PRIMARY KEY, 
                     word TEXT);
             CREATE TABLE IF NOT EXISTS 
-            DocIndex(id INTEGER PRIMARY KEY, 
+            DocIndex(doc_id INTEGER PRIMARY KEY, 
                     url TEXT);
             CREATE TABLE IF NOT EXISTS 
             InvertedIndex(word_id INTEGER, 
                     doc_id INTEGER);
             CREATE TABLE IF NOT EXISTS 
-            Links(from_url INTEGER, to_url INTEGER);""")
+            Links(from_url INTEGER, to_url INTEGER);
+            CREATE TABLE IF NOT EXISTS 
+            PageRank(doc_id INTEGER PRIMARY KEY, rank INTEGER);""")
         
         # functions to call when entering and exiting specific tags
         self._enter = defaultdict(lambda *a, **ka: self._visit_ignore)
@@ -153,6 +157,7 @@ class crawler(object):
 
     def __del__(self):    
         if self.db_conn:
+           self.db_conn.Commit()
            self.db_conn.close()
 
     # TODO remove me in real version
@@ -165,8 +170,6 @@ class crawler(object):
         if self.db_conn and url != "":
             self.cur.execute("""INSERT INTO DocIndex VALUES( null, '%s');""" %  url)
             self.db_conn.commit()
-
-        LINK_LIST[ret_id] = url
         return ret_id
     
     # TODO remove me in real version
@@ -176,10 +179,8 @@ class crawler(object):
         if self.db_conn:
             self.cur.execute("""INSERT INTO Lexicon VALUES( null, '%s');""" %  word)
             self.db_conn.commit()
-
         ret_id = self._mock_next_word_id
         self._mock_next_word_id += 1
-        WORD_LIST[ret_id] = word
         return ret_id
     
     def word_id(self, word):
@@ -225,7 +226,7 @@ class crawler(object):
     def add_link(self, from_doc_id, to_doc_id):
         """Add a link into the database, or increase the number of links between
         two pages in the database."""
-        print("in add_link")
+        #print("in add_link")
         if self.db_conn:
             self.cur.execute("""INSERT INTO Links VALUES('%s', '%s');""" %  (from_doc_id, to_doc_id))
             self.db_conn.commit()
@@ -262,14 +263,14 @@ class crawler(object):
         #       database for this document
         for word in self._curr_words:
             word_id = word[0]
-            print ("word id is %s doc id is %s" %  (word_id, self._curr_doc_id))
+            #print ("word id is %s doc id is %s" %  (word_id, self._curr_doc_id))
             self.cur.execute("""INSERT INTO InvertedIndex  VALUES( '%s', '%s');""" %  (word_id, self._curr_doc_id))
-            self.db_conn.commit()
            # if word_id in INVERTED_INDEX:
            #   INVERTED_INDEX[word_id].add(self._curr_doc_id)
            # else:
            #   INVERTED_INDEX[word_id]= set()
            #   INVERTED_INDEX[word_id].add(self._curr_doc_id)
+        self.db_conn.commit()
         #print "    num words="+ str(len(self._curr_words))
 
     def _increase_font_factor(self, factor):
@@ -354,7 +355,6 @@ class crawler(object):
         seen = set()
 
         while len(self._url_queue):
-
             url, depth_ = self._url_queue.pop()
 
             # skip this url; it's too deep
@@ -391,6 +391,7 @@ class crawler(object):
                     socket.close()
 
     def get_inverted_index(self):
+        print "this function is deprecated"
         return INVERTED_INDEX
 
     def get_resolved_inverted_index(self):
@@ -405,18 +406,21 @@ class crawler(object):
             RESOLVED_INVERTED_INDEX[word] = resolved_set
         return RESOLVED_INVERTED_INDEX
     
-    def page_rank_calculation(self, iterations=20, initial_pr = 0.85 ):
+    def page_rank_calculation(self, iterations=20, initial_pr=0.85 ):
       if self.db_conn.cursor():
-        self.cur.execute('SELECT * FROM Links')
-        data = cur.fetchall()
-        ranked_list = pagerank.page_rank(data, iterations, intitial_pr)
-      
+        self.cur.execute('SELECT * FROM Links;')
+        data = self.cur.fetchall()
+        ranked_list = pagerank.page_rank(data, iterations, initial_pr)
+        for entry in ranked_list: #self._mock_next_doc_id 
+          self.cur.execute( """INSERT OR REPLACE INTO PageRank (doc_id, rank)  VALUES('%s', '%s');""" %  ( entry,  ranked_list[entry]) )
+        self.db_conn.commit()
+        
 if __name__ == "__main__":
     db_conn = lite.connect("table.db")
     bot = crawler(db_conn, "urls.txt")
     bot.crawl(depth=1)
     cur = db_conn.cursor()
-    print bot.get_inverted_index()
+    #print bot.get_inverted_index()
     #print bot.get_resolved_inverted_index()
     #cur.execute('SELECT * FROM Lexicon')
     #data = cur.fetchall()
@@ -427,8 +431,16 @@ if __name__ == "__main__":
     #cur.execute('SELECT * FROM Links')
     #data = cur.fetchall()
     #print data
-    print pagerank.page_rank(data, 20, 0.85)
-    cur.execute('SELECT doc_id FROM InvertedIndex WHERE word_id = 1')
+   
+    #print pagerank.page_rank(data, 20, 0.85)
+    #cur.execute('SELECT doc_id FROM InvertedIndex WHERE word_id = 1')
+    #data = cur.fetchall()
+    #print str(data)
+
+    #cur.execute('SELECT MAX(doc_id) FROM DocIndex;')
+    #print cur.fetchall()
+    
+    bot.page_rank_calculation()
+    cur.execute('SELECT * FROM PageRank')
     data = cur.fetchall()
     print str(data)
-
