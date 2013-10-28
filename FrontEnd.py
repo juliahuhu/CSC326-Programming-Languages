@@ -85,12 +85,13 @@ def searchpages(pageid, userinput):
 		#print temp
 		#addedResult += ("<br><br>" + temp[1])
 
-	c.execute("SELECT * FROM Lexicon WHERE word = '%s'" % testword)
+	c.execute("SELECT DocIndex.url FROM Lexicon, DocIndex, InvertedIndex, PageRank WHERE Lexicon.word_id = InvertedIndex.word_id AND InvertedIndex.doc_id = DocIndex.doc_id AND InvertedIndex.doc_id=PageRank.doc_id AND Lexicon.word = ? ORDER BY PageRank.rank", searchWord)
+	#c.execute("SELECT * FROM Lexicon WHERE word = '%s'" % testword)
 	result = c.fetchall()
 	print result
-	c.execute("SELECT Count(word) FROM Lexicon WHERE word = '%s'" % testword)
-	result2 = c.fetchall()
-	print result2
+	#c.execute("SELECT Count(word) FROM Lexicon WHERE word = '%s'" % testword)
+	#result2 = c.fetchall()
+	#print result2
 
 	count = 0
 
@@ -101,14 +102,20 @@ def searchpages(pageid, userinput):
 
 		#split and display as url
 		url = str(row).split("'")
-		page[int(floor(count/20))] += ('<tr><td><a href="' + url[1] + '">'+ url[1] + "</a></td></tr>")
+		print url
+		print count
+		print int(floor(count/20))
+		page[int(floor((count-1)/20))] += ('<tr><td><a href="' + url[1] + '">'+ url[1] + "</a></td></tr>")
 
+
+	if count == 0:
+		return LogoString + "<br><br>" + searchHTML + "<br><br>" +"Search "+  "'%s'<br><br> No results found."  %(userinput) 
 
 
 	pageList = "Go to Page:<br>"+"""<table border = "0"><tr>"""
 	print (len(page))
 	for pagenum in range(0, len(page)):
-		pageList += """<th><a href= "localhost:8080/search/""" + str(pagenum) + "/" + userinput + '">' + str(pagenum+1) + "<a></th>"
+		pageList += '<th><a href= "http://localhost:8080/search/' + str(pagenum) + '/' + userinput + '">' + str(pagenum+1) + "<a></th>"
 
 	pageList += "</tr>"
 
