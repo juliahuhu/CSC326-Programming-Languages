@@ -71,16 +71,15 @@ class crawler(object):
             Lexicon(word_id INTEGER PRIMARY KEY, 
                     word TEXT UNIQUE);
             CREATE TABLE IF NOT EXISTS 
-            DocIndex(doc_id INTEGER ,
-                    url TEXT, PRIMARY KEY(url, doc_id));
+            DocIndex(doc_id INTEGER PRIMARY KEY, 
+                    url TEXT);
             CREATE TABLE IF NOT EXISTS 
             InvertedIndex(word_id INTEGER, 
-                    doc_id INTEGER, PRIMARY KEY(word_id, doc_id));
+                    doc_id INTEGER);
             CREATE TABLE IF NOT EXISTS 
             Links(from_url INTEGER, to_url INTEGER);
             CREATE TABLE IF NOT EXISTS 
-            PageRank(doc_id INTEGER PRIMARY KEY, rank INTEGER);
-        """)
+            PageRank(doc_id INTEGER PRIMARY KEY, rank INTEGER);""")
         
         # functions to call when entering and exiting specific tags
         self._enter = defaultdict(lambda *a, **ka: self._visit_ignore)
@@ -164,10 +163,10 @@ class crawler(object):
         and then returns that newly inserted document's id."""
 
         ret_id = self._mock_next_doc_id
-        if self.db_conn and url != "":
-            self.cur.execute("""INSERT INTO DocIndex VALUES( '%s', '%s');""" % ( ret_id, url))
-            self.db_conn.commit()
         self._mock_next_doc_id += 1
+        if self.db_conn and url != "":
+            self.cur.execute("""INSERT INTO DocIndex VALUES( null, '%s');""" %  url)
+            self.db_conn.commit()
         return ret_id
     
     # TODO remove me in real version
@@ -190,11 +189,8 @@ class crawler(object):
         #          word is in the lexicon
         #       2) query the lexicon for the id assigned to this word, 
         #          store it in the word id cache, and return the id.
-        #asdf
-        if self.db_conn:    
-            self.cur.execute("SELECT word_id FROM Lexicon WHERE word='%s ';" % word)
-            
-        word_id= self.cur.fetchone()
+
+        word_id = self._insert_word(word)
         self._word_id_cache[word] = word_id
         return word_id
     
@@ -424,3 +420,4 @@ if __name__ == "__main__":
     cur.execute('SELECT * FROM PageRank')
     data = cur.fetchall()
     print str(data)
+
