@@ -190,8 +190,11 @@ class crawler(object):
         #          word is in the lexicon
         #       2) query the lexicon for the id assigned to this word, 
         #          store it in the word id cache, and return the id.
-
-        word_id = self._insert_word(word)
+        #asdf
+        if self.db_conn:    
+            self.cur.execute("SELECT word_id FROM Lexicon WHERE word='%s ';" % word)
+            
+        word_id= self.cur.fetchone()
         self._word_id_cache[word] = word_id
         return word_id
     
