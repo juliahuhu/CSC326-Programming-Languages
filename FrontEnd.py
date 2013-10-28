@@ -1,11 +1,30 @@
-from bottle import route, run, request, FormsDict, error
+from bottle import route, run, request, FormsDict, error, redirect
 import collections, sqlite3
+from math import ceil, floor
 
 
 #import Logo from another file
 with open ("Logo.txt", "r") as LogoFile:
 	LogoString = LogoFile.read().replace('\n', "<br>")
 	LogoString = "<html><pre>"+LogoString+ "</html>"
+
+
+searchHTML = '''
+		<form action ="/search" method="post">
+			Search: <input name="userinput" type="text"/>
+			<input value = "Search" type="submit" />
+		</form>
+	'''
+
+#variables
+#page = []
+#userinput =""
+#printWordCounter = ""
+addedResult = """<table border = "0"><tr><th align = "left">Search Results</th></tr>"""
+#pagenum = 0
+endTable = "</table>"
+#pageList = ""
+
 
 #error page
 @error(404)
@@ -20,20 +39,16 @@ def Logo():
 
 #search page - includes an html form with one text box for search input
 @route('/search')
-def search():
-	return LogoString + "<br><br>" +'''
-		<form action ="/search" method="post">
-			Search: <input name="userinput" type="text"/>
-			<input value = "Search" type="submit" />
-		</form>
-	'''
+def search():	
+	return LogoString + "<br><br>" + searchHTML
 
 #search result page
+#@route('/search/<pageid>', method = 'POST')
 @route('/search', method='POST')
 def do_search():
-	#read user input from form
+
 	userinput = request.forms.get("userinput")
-	
+
 	#split user search into words and count the occurance of each word using collections.Counter
 	words = userinput.split(" ")
 	wordcounter = collections.Counter(words)
@@ -44,43 +59,64 @@ def do_search():
 		printWordCounter += ("<tr><td>" + key + """</td><td align="center">""" + str(value) + "</td></tr>")
 
 
+
+	redirect('/search/0/'+ userinput)
+
+@route('/search/<pageid>/<userinput>')
+def searchpages(pageid, userinput):
+
 	conn = sqlite3.connect('table.db')
 	c=conn.cursor()
-	#c.execute('''CREATE TABLE test
-	#			(date text, name text)''')
-	#c.execute('INSERT INTO test VALUES ("2013-10-05", "Anmol")')
-	#c.execute('INSERT INTO test VALUES ("2013-10-07", "Vincent")')
-	#conn.commit()
-	#conn.close()
-	
+		
 	#get results from  table
-	#conn = sqlite3.connect('table.db')
-	#c=conn.cursor()
-	testword = "http://sdraper.ece.wisc.edu/researchDir/frame.html"
-	testword2 = ('nbsp',)
-	addedResult = ""
-	#for row in c.execute("SELECT * FROM Lexicon WHERE word = '%s'" % testword):	
+	words = userinput.split(" ")
+	searchWord = (words[0],)
+	testword = ('draper',)
+	resultCount = 0
+	page = []
+	#for row in c.execute("SELECT * FROM Lexicon WHERE word = '%s'" % searchWord):	
 	#for row in c.execute('SELECT * FROM Lexicon, DocIndex, Links WHERE Lexicon.id = DocIndex.id AND Lexicon.id = Links.id'):	
-
-	for row in c.execute('SELECT url FROM Lexicon, DocIndex, Links WHERE Lexicon.id = DocIndex.id AND Lexicon.id = Links.id AND url = ?', testword2):	
+	#for row in c.execute('SELECT url FROM Lexicon, DocIndex, Links WHERE Lexicon.id = DocIndex.id AND Lexicon.id = Links.id AND url = ?', testword2):	
 	#for row in c.execute('SELECT * FROM Lexicon, DocIndex, Links WHERE Lexicon.id = DocIndex.id AND Lexicon.id = Links.id AND Lexicon.word LIKE ?', [words[0]]):	
 		#add ORDER BY Page Rank
-		#result = c.fetchone()
-		#print (str(result))
-		print row
-		result = c.fetchall()
-		print (str(result))
-		#parse row to only actual work
-		addedResult += ("<br><br>" + str(row))
-		print (addedResult)
+		#print row
+		#resultCount +=1
+		#temp = (str(row)).split("'")
+		#print temp
+		#addedResult += ("<br><br>" + temp[1])
 
-	#Display table results on page
+	c.execute("SELECT * FROM Lexicon WHERE word = '%s'" % testword)
+	result = c.fetchall()
+	print result
+	c.execute("SELECT Count(word) FROM Lexicon WHERE word = '%s'" % testword)
+	result2 = c.fetchall()
+	print result2
+
+	count = 0
+
+	for row in result:
+		count+=1
+		if count%20 == 1:
+			page.append("")
+
+		#split and display as url
+		url = str(row).split("'")
+		page[int(floor(count/20))] += ('<tr><td><a href="' + url[1] + '">'+ url[1] + "</a></td></tr>")
 
 
-	
-#	return LogoString + "<br><br>" + "Search "+  "'%s' <br><br> %s "  %(userinput, printWordCounter) 
 
-	return LogoString + "<br><br>" + "Search "+  "'%s' <br><br> %s %s"  %(userinput, printWordCounter, addedResult) 
+	pageList = "Go to Page:<br>"+"""<table border = "0"><tr>"""
+	print (len(page))
+	for pagenum in range(0, len(page)):
+		pageList += """<th><a href= "localhost:8080/search/""" + str(pagenum) + "/" + userinput + '">' + str(pagenum+1) + "<a></th>"
+
+	pageList += "</tr>"
+
+	if int(pageid) < len(page): 
+		return LogoString + "<br><br>" + searchHTML + "<br><br>" +"Search "+  "'%s'<br><br>%s %s%s<br><br>%s"  %(userinput, addedResult, page[int(pageid)], endTable, pageList) 
+
+	else:
+		redirect('/err')
 
 
 
