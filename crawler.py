@@ -41,9 +41,6 @@ def attr(elem, attr):
         return ""
 
 WORD_SEPARATORS = re.compile(r'\s|\n|\r|\t|[^a-zA-Z0-9\-_]')
-INVERTED_INDEX = {}
-WORD_LIST = {}
-LINK_LIST = {}
 
 class crawler(object):
     """Represents 'Googlebot'. Populates a database by crawling and indexing
@@ -63,16 +60,16 @@ class crawler(object):
         self.db_conn = db_conn
         self.cur = self.db_conn.cursor()
         self.cur.executescript(
-            #"""
-            #DROP TABLE IF EXISTS Lexicon;
-            #DROP TABLE IF EXISTS DocIndex;
-            #DROP TABLE IF EXISTS Links;
-            #DROP TABLE IF EXISTS InvertedIndex;
-            #DROP TABLE IF EXISTS PageRank;
             """
+            DROP TABLE IF EXISTS Lexicon;
+            DROP TABLE IF EXISTS DocIndex;
+            DROP TABLE IF EXISTS Links;
+            DROP TABLE IF EXISTS InvertedIndex;
+            DROP TABLE IF EXISTS PageRank;
+
             CREATE TABLE IF NOT EXISTS 
             Lexicon(word_id INTEGER PRIMARY KEY, 
-                    word TEXT);
+                    word TEXT UNIQUE);
             CREATE TABLE IF NOT EXISTS 
             DocIndex(doc_id INTEGER PRIMARY KEY, 
                     url TEXT);
@@ -265,11 +262,6 @@ class crawler(object):
             word_id = word[0]
             #print ("word id is %s doc id is %s" %  (word_id, self._curr_doc_id))
             self.cur.execute("""INSERT INTO InvertedIndex  VALUES( '%s', '%s');""" %  (word_id, self._curr_doc_id))
-           # if word_id in INVERTED_INDEX:
-           #   INVERTED_INDEX[word_id].add(self._curr_doc_id)
-           # else:
-           #   INVERTED_INDEX[word_id]= set()
-           #   INVERTED_INDEX[word_id].add(self._curr_doc_id)
         self.db_conn.commit()
         #print "    num words="+ str(len(self._curr_words))
 
@@ -390,22 +382,6 @@ class crawler(object):
                 if socket:
                     socket.close()
 
-    def get_inverted_index(self):
-        print "this function is deprecated"
-        return INVERTED_INDEX
-
-    def get_resolved_inverted_index(self):
-        print "in resolved"
-        RESOLVED_INVERTED_INDEX = {}
-        for  entry in INVERTED_INDEX:
-            word = WORD_LIST[entry]
-            doc_ids =  INVERTED_INDEX[entry]
-            resolved_set = set()
-            for doc_id  in doc_ids:
-                resolved_set.add(LINK_LIST[doc_id])
-            RESOLVED_INVERTED_INDEX[word] = resolved_set
-        return RESOLVED_INVERTED_INDEX
-    
     def page_rank_calculation(self, iterations=20, initial_pr=0.85 ):
       if self.db_conn.cursor():
         self.cur.execute('SELECT * FROM Links;')
