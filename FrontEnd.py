@@ -85,7 +85,7 @@ def searchpages(pageid, userinput):
 		#print temp
 		#addedResult += ("<br><br>" + temp[1])
 
-	c.execute("SELECT DocIndex.url FROM Lexicon, DocIndex, InvertedIndex, PageRank WHERE Lexicon.word_id = InvertedIndex.word_id AND InvertedIndex.doc_id = DocIndex.doc_id AND InvertedIndex.doc_id=PageRank.doc_id AND Lexicon.word = ? ORDER BY PageRank.rank", searchWord)
+	c.execute("SELECT DocIndex.url FROM Lexicon, DocIndex, InvertedIndex, PageRank WHERE Lexicon.word_id = InvertedIndex.word_id AND InvertedIndex.doc_id = DocIndex.doc_id AND InvertedIndex.doc_id=PageRank.doc_id AND Lexicon.word LIKE ? ORDER BY PageRank.rank", searchWord)
 	#c.execute("SELECT * FROM Lexicon WHERE word = '%s'" % testword)
 	result = c.fetchall()
 	print result
@@ -105,7 +105,7 @@ def searchpages(pageid, userinput):
 		print url
 		print count
 		print int(floor(count/20))
-		page[int(floor((count-1)/20))] += ('<tr><td><a href="' + url[1] + '">'+ url[1] + "</a></td></tr>")
+		page[int(floor((count-1)/20))] += ('<tr><td><a href="' + url[1] + '" target="_blank">'+ url[1] + "</a></td></tr>")
 
 
 	if count == 0:
