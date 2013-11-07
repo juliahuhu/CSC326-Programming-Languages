@@ -1,13 +1,20 @@
 from bottle import route, run, request, FormsDict, error, redirect
-import collections, sqlite3
+import collections, sqlite3, httplib2
 from math import ceil, floor
+from oauth2client.client import OAuth2WebServerFlow, flow_from_clientsecrets
+from apiclient.errors import HttpError
+from apiclient.discovery import build
 
+
+scope = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
+redirect_uri = 'http://localhost:8080/searchRedirect'
+addedResult = """<table border = "0"><tr><th align = "left">Search Results</th></tr>"""
+endTable = "</table>"
 
 #import Logo from another file
 with open ("Logo.txt", "r") as LogoFile:
 	LogoString = LogoFile.read().replace('\n', "<br>")
 	LogoString = "<html><pre>"+LogoString+ "</html>"
-
 
 searchHTML = '''
 		<form action ="/search" method="post">
@@ -16,14 +23,39 @@ searchHTML = '''
 		</form>
 	'''
 
-#variables
-#page = []
-#userinput =""
-#printWordCounter = ""
-addedResult = """<table border = "0"><tr><th align = "left">Search Results</th></tr>"""
-#pagenum = 0
-endTable = "</table>"
-#pageList = ""
+def googleAPI():
+	#google api set up
+	flow = flow_from_clientsecrets("client_secrets.json", scope = scope, redirect_uri = redirect_uri)
+	uri = flow.step1_get_authorize_url()
+	redirect(uri)
+
+
+@route('/searchRedirect')
+def searchRedirect():
+	#exchange one time code for access token
+	print("gettting code now")
+	code = request.query.get("code", "")
+	print("code ==========" + code)
+	flow = OAuth2WebServerFlow(client_id='470991490159.apps.googleusercontent.com', client_secret = 'Zleg_TsPX6CXU06z3XURewt8', scope = scope, redirect_uri = redirect_uri)
+	credentials = flow.step2_exchange(code)
+	token = credentials.id_token['sub']
+
+	#retrieve user data with the access token
+	http = httplib2.Http()
+	http = credentials.authorize(http)
+
+	#get user email
+	users_service = build('oauth2', 'v2', http=http)
+	user_document = users_service.userinfo().get().execute()
+	user_email = user_document['email']
+
+	#get username
+	users_service = build('plus', 'v1', http=http)
+	profile = users_service.people().get(userId='me').execute()
+	user_name = profile['displayName']
+	user_image = profile['image']['url']
+
+	redirect('/search')
 
 
 #error page
@@ -34,6 +66,7 @@ def error404(error):
 #homepage - just show logo
 @route('/')
 def Logo():
+	googleAPI()
 	return LogoString
 
 

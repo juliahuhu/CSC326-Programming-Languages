@@ -574,7 +574,7 @@ class Bottle(object):
                          let debugging middleware handle exceptions.
     """
 
-    def __init__(self, catchall=True, autojson=True):
+    def __init__(self, catchall=False, autojson=True):
 
         #: A :class:`ConfigDict` for app specific configuration.
         self.config = ConfigDict()
