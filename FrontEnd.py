@@ -7,9 +7,10 @@ from apiclient.discovery import build
 
 
 scope = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
-redirect_uri = 'http://localhost:8080/searchRedirect'
+redirect_uri = 'http://localhost:8080/search'
 addedResult = """<table border = "0"><tr><th align = "left">Search Results</th></tr>"""
 endTable = "</table>"
+code = ""
 
 #import Logo from another file
 with open ("Logo.txt", "r") as LogoFile:
@@ -23,6 +24,10 @@ searchHTML = '''
 		</form>
 	'''
 
+logoutButton = '''<FORM METHOD="LINK" ACTION="https://accounts.google.com/logout" ALIGN = "right">
+<INPUT TYPE="submit" VALUE="Logout">
+</FORM>'''
+
 def googleAPI():
 	#google api set up
 	flow = flow_from_clientsecrets("client_secrets.json", scope = scope, redirect_uri = redirect_uri)
@@ -30,12 +35,28 @@ def googleAPI():
 	redirect(uri)
 
 
-@route('/searchRedirect')
-def searchRedirect():
-	#exchange one time code for access token
-	print("gettting code now")
+
+#error page
+@error(404)
+def error404(error):
+	return '''This page or file does not exist. <br><br> Please visit the <a href="http://localhost:8080/search"> Search page</a> for a new search.'''
+
+#homepage - just show logo
+@route('/')
+def Home():
+	googleAPI()
+	#return LogoString
+
+
+#search page - includes an html form with one text box for search input
+@route('/search')
+def search():	
+
 	code = request.query.get("code", "")
-	print("code ==========" + code)
+
+	if(code == ""):
+		redirect('/')
+
 	flow = OAuth2WebServerFlow(client_id='470991490159.apps.googleusercontent.com', client_secret = 'Zleg_TsPX6CXU06z3XURewt8', scope = scope, redirect_uri = redirect_uri)
 	credentials = flow.step2_exchange(code)
 	token = credentials.id_token['sub']
@@ -55,25 +76,7 @@ def searchRedirect():
 	user_name = profile['displayName']
 	user_image = profile['image']['url']
 
-	redirect('/search')
-
-
-#error page
-@error(404)
-def error404(error):
-	return '''This page or file does not exist. <br><br> Please visit the <a href="http://localhost:8080/search"> Search page</a> for a new search.'''
-
-#homepage - just show logo
-@route('/')
-def Logo():
-	googleAPI()
-	return LogoString
-
-
-#search page - includes an html form with one text box for search input
-@route('/search')
-def search():	
-	return LogoString + "<br><br>" + searchHTML
+	return logoutButton + LogoString + "<br><br>" + searchHTML
 
 #search result page
 #@route('/search/<pageid>', method = 'POST')
@@ -142,7 +145,7 @@ def searchpages(pageid, userinput):
 
 
 	if count == 0:
-		return LogoString + "<br><br>" + searchHTML + "<br><br>" +"Search "+  "'%s'<br><br> No results found."  %(userinput) 
+		return logoutButton + LogoString + "<br><br>" + searchHTML + "<br><br>" +"Search "+  "'%s'<br><br> No results found."  %(userinput) 
 
 
 	pageList = "Go to Page:<br>"+"""<table border = "0"><tr>"""
@@ -153,7 +156,7 @@ def searchpages(pageid, userinput):
 	pageList += "</tr>"
 
 	if int(pageid) < len(page): 
-		return LogoString + "<br><br>" + searchHTML + "<br><br>" +"Search "+  "'%s'<br><br>%s %s%s<br><br>%s"  %(userinput, addedResult, page[int(pageid)], endTable, pageList) 
+		return logoutButton + LogoString + "<br><br>" + searchHTML + "<br><br>" +"Search "+  "'%s'<br><br>%s %s%s<br><br>%s"  %(userinput, addedResult, page[int(pageid)], endTable, pageList) 
 
 	else:
 		redirect('/err')
