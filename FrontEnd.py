@@ -1,22 +1,25 @@
-from bottle import route, run, request, FormsDict, error, redirect
+from bottle import route, run, request, FormsDict, error, redirect, app
 import collections, sqlite3, httplib2
 from math import ceil, floor
 from oauth2client.client import OAuth2WebServerFlow, flow_from_clientsecrets
 from apiclient.errors import HttpError
 from apiclient.discovery import build
+from beaker.middleware import SessionMiddleware
 
-
+#variable definitions
 scope = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
 redirect_uri = 'http://localhost:8080/search'
 addedResult = """<table border = "0"><tr><th align = "left">Search Results</th></tr>"""
 endTable = "</table>"
 code = ""
+checkLogout = 0
 
 #import Logo from another file
 with open ("Logo.txt", "r") as LogoFile:
 	LogoString = LogoFile.read().replace('\n', "<br>")
 	LogoString = "<html><pre>"+LogoString+ "</html>"
 
+#Search form
 searchHTML = '''
 		<form action ="/search" method="post">
 			Search: <input name="userinput" type="text"/>
@@ -24,10 +27,16 @@ searchHTML = '''
 		</form>
 	'''
 
-logoutButton = '''<FORM METHOD="LINK" ACTION="https://accounts.google.com/logout" ALIGN = "right">
+#logout button
+logoutButton = '''<FORM METHOD="LINK" ACTION="http://localhost:8080/logout" ALIGN = "right">
 <INPUT TYPE="submit" VALUE="Logout">
 </FORM>'''
 
+#logoutButton = '''<Button style="float:right" onclick="http://localhost:8080/logout">Logout</button>'''
+
+
+
+#function connecting to google API
 def googleAPI():
 	#google api set up
 	flow = flow_from_clientsecrets("client_secrets.json", scope = scope, redirect_uri = redirect_uri)
@@ -35,6 +44,32 @@ def googleAPI():
 	redirect(uri)
 
 
+
+###Session Management
+#def myapp(environ, start_response):
+#	print "I'm here!!!!!!!"
+	#get the session object from the environ
+#	session = environ['beaker.session']
+
+	#check if a value is in session
+#	user = 'logged_in' in session
+#	session['user_id'] = 10
+
+#	start_response('200 OK', [('Content-type', 'text/plain')])
+#	print user
+#	return ['User is logged in: %s' %user]
+
+#configure middleware
+session_opts = {
+	'session.type': 'file', 
+	'session.cookie_expires': 300,
+	'session.data_dir': './data',
+	'session.auto': True,
+}
+wsgi_app = SessionMiddleware(app(), session_opts)
+
+
+######Pages##########
 
 #error page
 @error(404)
@@ -44,16 +79,28 @@ def error404(error):
 #homepage - just show logo
 @route('/')
 def Home():
+	#print "I'm here!!!"
+	session = request.environ.get('beaker.session')
+	#session['test'] = session.get('test', 0) + 1
+	session.save()
 	googleAPI()
 	#return LogoString
 
+@route('/logout')
+def logout():
+	checkLogout = 1
+	redirect("https://accounts.google.com/logout")
 
 #search page - includes an html form with one text box for search input
 @route('/search')
-def search():	
+def search():
+#	global checkLogout	
+#	print ("CheckLogout" + str(checkLogout))
+#	if (checkLogout == 1):
+#		checkLogout = checkLogout - 1
+#		redirect('/')
 
 	code = request.query.get("code", "")
-
 	if(code == ""):
 		redirect('/')
 
@@ -78,8 +125,7 @@ def search():
 
 	return logoutButton + LogoString + "<br><br>" + searchHTML
 
-#search result page
-#@route('/search/<pageid>', method = 'POST')
+
 @route('/search', method='POST')
 def do_search():
 
@@ -93,8 +139,6 @@ def do_search():
 	printWordCounter = """<table border = "0"><tr><th align = "left">Word</th><th>Count</th></tr>"""
 	for key, value in zip(wordcounter.keys(), wordcounter.values()):
 		printWordCounter += ("<tr><td>" + key + """</td><td align="center">""" + str(value) + "</td></tr>")
-
-
 
 	redirect('/search/0/'+ userinput)
 
@@ -110,27 +154,11 @@ def searchpages(pageid, userinput):
 	testword = ('draper',)
 	resultCount = 0
 	page = []
-	#for row in c.execute("SELECT * FROM Lexicon WHERE word = '%s'" % searchWord):	
-	#for row in c.execute('SELECT * FROM Lexicon, DocIndex, Links WHERE Lexicon.id = DocIndex.id AND Lexicon.id = Links.id'):	
-	#for row in c.execute('SELECT url FROM Lexicon, DocIndex, Links WHERE Lexicon.id = DocIndex.id AND Lexicon.id = Links.id AND url = ?', testword2):	
-	#for row in c.execute('SELECT * FROM Lexicon, DocIndex, Links WHERE Lexicon.id = DocIndex.id AND Lexicon.id = Links.id AND Lexicon.word LIKE ?', [words[0]]):	
-		#add ORDER BY Page Rank
-		#print row
-		#resultCount +=1
-		#temp = (str(row)).split("'")
-		#print temp
-		#addedResult += ("<br><br>" + temp[1])
-
+	
 	c.execute("SELECT DocIndex.url FROM Lexicon, DocIndex, InvertedIndex, PageRank WHERE Lexicon.word_id = InvertedIndex.word_id AND InvertedIndex.doc_id = DocIndex.doc_id AND InvertedIndex.doc_id=PageRank.doc_id AND Lexicon.word LIKE ? ORDER BY PageRank.rank", searchWord)
-	#c.execute("SELECT * FROM Lexicon WHERE word = '%s'" % testword)
 	result = c.fetchall()
-	print result
-	#c.execute("SELECT Count(word) FROM Lexicon WHERE word = '%s'" % testword)
-	#result2 = c.fetchall()
-	#print result2
 
 	count = 0
-
 	for row in result:
 		count+=1
 		if count%20 == 1:
@@ -138,9 +166,6 @@ def searchpages(pageid, userinput):
 
 		#split and display as url
 		url = str(row).split("'")
-		print url
-		print count
-		print int(floor(count/20))
 		page[int(floor((count-1)/20))] += ('<tr><td><a href="' + url[1] + '" target="_blank">'+ url[1] + "</a></td></tr>")
 
 
@@ -149,7 +174,6 @@ def searchpages(pageid, userinput):
 
 
 	pageList = "Go to Page:<br>"+"""<table border = "0"><tr>"""
-	print (len(page))
 	for pagenum in range(0, len(page)):
 		pageList += '<th><a href= "http://localhost:8080/search/' + str(pagenum) + '/' + userinput + '">' + str(pagenum+1) + "<a></th>"
 
@@ -163,4 +187,4 @@ def searchpages(pageid, userinput):
 
 
 
-run(host="localhost", port="8080", debug=True)
+run(host="localhost", port="8080", debug=True, app=wsgi_app)
