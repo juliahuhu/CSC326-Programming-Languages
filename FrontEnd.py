@@ -5,6 +5,8 @@ from oauth2client.client import OAuth2WebServerFlow, flow_from_clientsecrets
 from apiclient.errors import HttpError
 from apiclient.discovery import build
 from beaker.middleware import SessionMiddleware
+from beaker.cache import CacheManager
+from beaker.util import parse_cache_config_options
 
 #variable definitions
 scope = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
@@ -30,10 +32,27 @@ searchHTML = '''
 #logout button
 logoutButton = '''<FORM METHOD="LINK" ACTION="http://localhost:8080/logout" ALIGN = "right">
 <INPUT TYPE="submit" VALUE="Logout">
-</FORM>'''
+</FORM></body></html>'''
 
-#logoutButton = '''<Button style="float:right" onclick="http://localhost:8080/logout">Logout</button>'''
+#cache
+cache_opts = {
+	'cache.type': 'file',
+	'cache.data_dir': '/tmp/cache/data',
+	'cache.lock_dir': '/tmp/cache/lock'
+}
 
+cache = CacheManager(**parse_cache_config_options(cache_opts))
+tmpl_cache = cache.get_cache('http://localhost:8080/search', type='dbm', expire = 3600)
+tmpl_cache.clear()
+
+#no browser back
+disableBack = """<html><head><SCRIPT type="text/javascript">
+    window.history.forward();
+    function noBack() { window.history.forward(); }
+</SCRIPT>
+</HEAD>
+<BODY onload="noBack();"
+    onpageshow="if (event.persisted) noBack();" onunload="">"""
 
 
 #function connecting to google API
@@ -79,27 +98,17 @@ def error404(error):
 #homepage - just show logo
 @route('/')
 def Home():
-	#print "I'm here!!!"
 	session = request.environ.get('beaker.session')
-	#session['test'] = session.get('test', 0) + 1
 	session.save()
 	googleAPI()
-	#return LogoString
 
 @route('/logout')
 def logout():
-	checkLogout = 1
 	redirect("https://accounts.google.com/logout")
 
 #search page - includes an html form with one text box for search input
 @route('/search')
 def search():
-#	global checkLogout	
-#	print ("CheckLogout" + str(checkLogout))
-#	if (checkLogout == 1):
-#		checkLogout = checkLogout - 1
-#		redirect('/')
-
 	code = request.query.get("code", "")
 	if(code == ""):
 		redirect('/')
@@ -123,7 +132,7 @@ def search():
 	user_name = profile['displayName']
 	user_image = profile['image']['url']
 
-	return logoutButton + LogoString + "<br><br>" + searchHTML
+	return disableBack + logoutButton + LogoString + "<br><br>" + searchHTML
 
 
 @route('/search', method='POST')
@@ -155,7 +164,11 @@ def searchpages(pageid, userinput):
 	resultCount = 0
 	page = []
 	
-	c.execute("SELECT DocIndex.url FROM Lexicon, DocIndex, InvertedIndex, PageRank WHERE Lexicon.word_id = InvertedIndex.word_id AND InvertedIndex.doc_id = DocIndex.doc_id AND InvertedIndex.doc_id=PageRank.doc_id AND Lexicon.word LIKE ? ORDER BY PageRank.rank", searchWord)
+	#c.execute("SELECT * FROM Lexicon, DocIndex, InvertedIndex, PageRank WHERE Lexicon.word_id = InvertedIndex.word_id AND InvertedIndex.doc_id = DocIndex.doc_id AND InvertedIndex.doc_id=PageRank.doc_id  ORDER BY PageRank.rank")
+	#resultTest = c.fetchall()
+	#print resultTest
+
+	c.execute("SELECT DISTINCT DocIndex.url FROM Lexicon, DocIndex, InvertedIndex, PageRank WHERE Lexicon.word_id = InvertedIndex.word_id AND InvertedIndex.doc_id = DocIndex.doc_id AND InvertedIndex.doc_id=PageRank.doc_id AND Lexicon.word LIKE ? ORDER BY PageRank.rank", searchWord)
 	result = c.fetchall()
 
 	count = 0
@@ -180,7 +193,7 @@ def searchpages(pageid, userinput):
 	pageList += "</tr>"
 
 	if int(pageid) < len(page): 
-		return logoutButton + LogoString + "<br><br>" + searchHTML + "<br><br>" +"Search "+  "'%s'<br><br>%s %s%s<br><br>%s"  %(userinput, addedResult, page[int(pageid)], endTable, pageList) 
+		return disableBack + logoutButton + LogoString + "<br><br>" + searchHTML + "<br><br>" +"Search "+  "'%s'<br><br>%s %s%s<br><br>%s"  %(userinput, addedResult, page[int(pageid)], endTable, pageList) 
 
 	else:
 		redirect('/err')
