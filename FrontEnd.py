@@ -9,12 +9,15 @@ from beaker.cache import CacheManager
 from beaker.util import parse_cache_config_options
 
 #variable definitions
+#baseURL="http://ec2-107-20-162-69.compute-1.amazonaws.com"
+baseURL = "http://localhost:8080"
 scope = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
-redirect_uri = 'http://localhost:8080/search'
+redirect_uri = baseURL + '/search'
 addedResult = """<table border = "0"><tr><th align = "left">Search Results</th></tr>"""
 endTable = "</table>"
 code = ""
 checkLogout = 0
+
 
 #import Logo from another file
 with open ("Logo.txt", "r") as LogoFile:
@@ -30,7 +33,7 @@ searchHTML = '''
 	'''
 
 #logout button
-logoutButton = '''<FORM METHOD="LINK" ACTION="http://localhost:8080/logout" ALIGN = "right">
+logoutButton = '''<FORM METHOD="LINK" ACTION="''' + baseURL + '''/logout" ALIGN = "right">
 <INPUT TYPE="submit" VALUE="Logout">
 </FORM></body></html>'''
 
@@ -42,7 +45,8 @@ cache_opts = {
 }
 
 cache = CacheManager(**parse_cache_config_options(cache_opts))
-tmpl_cache = cache.get_cache('http://localhost:8080/search', type='dbm', expire = 3600)
+
+tmpl_cache = cache.get_cache(baseURL + '/search', type='dbm', expire = 3600)
 tmpl_cache.clear()
 
 #no browser back
@@ -93,7 +97,7 @@ wsgi_app = SessionMiddleware(app(), session_opts)
 #error page
 @error(404)
 def error404(error):
-	return '''This page or file does not exist. <br><br> Please visit the <a href="http://localhost:8080/search"> Search page</a> for a new search.'''
+	return '''This page or file does not exist. <br><br> Please visit the <a href="''' + baseURL + '''/search"> Search page</a> for a new search.'''
 
 #homepage - just show logo
 @route('/')
@@ -188,7 +192,7 @@ def searchpages(pageid, userinput):
 
 	pageList = "Go to Page:<br>"+"""<table border = "0"><tr>"""
 	for pagenum in range(0, len(page)):
-		pageList += '<th><a href= "http://localhost:8080/search/' + str(pagenum) + '/' + userinput + '">' + str(pagenum+1) + "<a></th>"
+		pageList += '<th><a href= "' + baseURL + '/search/' + str(pagenum) + '/' + userinput + '">' + str(pagenum+1) + "<a></th>"
 
 	pageList += "</tr>"
 
@@ -200,4 +204,6 @@ def searchpages(pageid, userinput):
 
 
 
+#run(host="0.0.0.0", port="80", debug=True, app=wsgi_app)
 run(host="localhost", port="8080", debug=True, app=wsgi_app)
+
