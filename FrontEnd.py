@@ -9,8 +9,8 @@ from beaker.cache import CacheManager
 from beaker.util import parse_cache_config_options
 
 #variable definitions
-#baseURL="http://ec2-107-20-162-69.compute-1.amazonaws.com"
-baseURL = "http://localhost:8080"
+baseURL="http://ec2-107-20-162-69.compute-1.amazonaws.com"
+#baseURL = "http://localhost:8080"
 scope = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
 redirect_uri = baseURL + '/search'
 addedResult = """<table border = "0"><tr><th align = "left">Search Results</th></tr>"""
@@ -204,6 +204,6 @@ def searchpages(pageid, userinput):
 
 
 
-#run(host="0.0.0.0", port="80", debug=True, app=wsgi_app)
-run(host="localhost", port="8080", debug=True, app=wsgi_app)
+run(host="0.0.0.0", port="80", debug=True, app=wsgi_app)
+#run(host="localhost", port="8080", debug=True, app=wsgi_app)
 
