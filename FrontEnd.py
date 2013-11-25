@@ -9,8 +9,18 @@ from beaker.cache import CacheManager
 from beaker.util import parse_cache_config_options
 
 #variable definitions
-baseURL="http://ec2-107-20-162-69.compute-1.amazonaws.com"
-#baseURL = "http://localhost:8080"
+
+use_google_login = False
+localhost_test = True
+use_optimize = True
+
+RESULTS_CACHE = {}
+
+if localhost_test:
+	baseURL="http://ec2-107-20-162-69.compute-1.amazonaws.com"
+else:
+	baseURL = "http://localhost:8080"
+
 scope = 'https://www.googleapis.com/auth/plus.me https://www.googleapis.com/auth/userinfo.email'
 redirect_uri = baseURL + '/search'
 addedResult = """<table border = "0"><tr><th align = "left">Search Results</th></tr>"""
@@ -67,21 +77,6 @@ def googleAPI():
 	redirect(uri)
 
 
-
-###Session Management
-#def myapp(environ, start_response):
-#	print "I'm here!!!!!!!"
-	#get the session object from the environ
-#	session = environ['beaker.session']
-
-	#check if a value is in session
-#	user = 'logged_in' in session
-#	session['user_id'] = 10
-
-#	start_response('200 OK', [('Content-type', 'text/plain')])
-#	print user
-#	return ['User is logged in: %s' %user]
-
 #configure middleware
 session_opts = {
 	'session.type': 'file', 
@@ -102,9 +97,12 @@ def error404(error):
 #homepage - just show logo
 @route('/')
 def Home():
-	session = request.environ.get('beaker.session')
-	session.save()
-	googleAPI()
+	if use_google_login:
+		session = request.environ.get('beaker.session')
+		session.save()
+		googleAPI()
+	else: 
+		redirect('/search')
 
 @route('/logout')
 def logout():
@@ -113,31 +111,31 @@ def logout():
 #search page - includes an html form with one text box for search input
 @route('/search')
 def search():
-	code = request.query.get("code", "")
-	if(code == ""):
-		redirect('/')
+	if use_google_login:
+		code = request.query.get("code", "")
+		if(code == ""):
+			redirect('/')
 
-	flow = OAuth2WebServerFlow(client_id='470991490159.apps.googleusercontent.com', client_secret = 'Zleg_TsPX6CXU06z3XURewt8', scope = scope, redirect_uri = redirect_uri)
-	credentials = flow.step2_exchange(code)
-	token = credentials.id_token['sub']
+		flow = OAuth2WebServerFlow(client_id='470991490159.apps.googleusercontent.com', client_secret = 'Zleg_TsPX6CXU06z3XURewt8', scope = scope, redirect_uri = redirect_uri)
+		credentials = flow.step2_exchange(code)
+		token = credentials.id_token['sub']
 
-	#retrieve user data with the access token
-	http = httplib2.Http()
-	http = credentials.authorize(http)
+		#retrieve user data with the access token
+		http = httplib2.Http()
+		http = credentials.authorize(http)
 
-	#get user email
-	users_service = build('oauth2', 'v2', http=http)
-	user_document = users_service.userinfo().get().execute()
-	user_email = user_document['email']
+		#get user email
+		users_service = build('oauth2', 'v2', http=http)
+		user_document = users_service.userinfo().get().execute()
+		user_email = user_document['email']
 
-	#get username
-	users_service = build('plus', 'v1', http=http)
-	profile = users_service.people().get(userId='me').execute()
-	user_name = profile['displayName']
-	user_image = profile['image']['url']
+		#get username
+		users_service = build('plus', 'v1', http=http)
+		profile = users_service.people().get(userId='me').execute()
+		user_name = profile['displayName']
+		user_image = profile['image']['url']
 
 	return disableBack + logoutButton + LogoString + "<br><br>" + searchHTML
-
 
 @route('/search', method='POST')
 def do_search():
@@ -155,26 +153,35 @@ def do_search():
 
 	redirect('/search/0/'+ userinput)
 
+
+
+def db_search(searchWord):
+	conn = sqlite3.connect('table.db')
+	c=conn.cursor()
+	c.execute("SELECT DISTINCT DocIndex.url FROM Lexicon, DocIndex, InvertedIndex, PageRank WHERE Lexicon.word_id = InvertedIndex.word_id AND InvertedIndex.doc_id = DocIndex.doc_id AND InvertedIndex.doc_id=PageRank.doc_id AND Lexicon.word LIKE ? ORDER BY PageRank.rank", searchWord)
+
+	return  c.fetchall()
+
 @route('/search/<pageid>/<userinput>')
 def searchpages(pageid, userinput):
 
-	conn = sqlite3.connect('table.db')
-	c=conn.cursor()
-		
 	#get results from  table
 	words = userinput.split(" ")
 	searchWord = (words[0],)
-	testword = ('draper',)
 	resultCount = 0
 	page = []
+
+	result = ""	
+
+	if use_optimize:
+		if searchWord in RESULTS_CACHE:
+			result = RESULTS_CACHE[searchWord]
+		else:	
+			result = db_search(searchWord)
+			RESULTS_CACHE[searchWord] = result
+	else:
+		result = db_search(searchWord)		
 	
-	#c.execute("SELECT * FROM Lexicon, DocIndex, InvertedIndex, PageRank WHERE Lexicon.word_id = InvertedIndex.word_id AND InvertedIndex.doc_id = DocIndex.doc_id AND InvertedIndex.doc_id=PageRank.doc_id  ORDER BY PageRank.rank")
-	#resultTest = c.fetchall()
-	#print resultTest
-
-	c.execute("SELECT DISTINCT DocIndex.url FROM Lexicon, DocIndex, InvertedIndex, PageRank WHERE Lexicon.word_id = InvertedIndex.word_id AND InvertedIndex.doc_id = DocIndex.doc_id AND InvertedIndex.doc_id=PageRank.doc_id AND Lexicon.word LIKE ? ORDER BY PageRank.rank", searchWord)
-	result = c.fetchall()
-
 	count = 0
 	for row in result:
 		count+=1
@@ -203,7 +210,8 @@ def searchpages(pageid, userinput):
 		redirect('/err')
 
 
-
-run(host="0.0.0.0", port="80", debug=True, app=wsgi_app)
-#run(host="localhost", port="8080", debug=True, app=wsgi_app)
+if localhost_test:
+	run(host="localhost", port="8080", debug=True, app=wsgi_app)
+else:
+	run(host="0.0.0.0", port="80", debug=True, app=wsgi_app)
 
