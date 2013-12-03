@@ -1,7 +1,5 @@
 from bottle import route, run, request, FormsDict, error, redirect, app
 from pyswip import Prolog
-#import collections, sqlite3, httplib2
-#from math import ceil, floor
 
 #variable definitions
 
@@ -41,16 +39,20 @@ def Home():
 
 @route('/solve', method='POST')
 def solve():
-	sudokuString = ""
+	sudoku = []
+	sudokuString = "["
 	for i in range(1,82):
 		digit = request.forms.get(str(i))
 		if digit.isdigit():
-			sudokuString += digit 
+			sudoku.append(digit)
 		else:
-			sudokuString += "0"
+			sudoku.append("0")
+	sudokuString +=  ",".join(sudoku)
+	print sudokuString
+	sudokuString += "]"
 	redirect('/solve/'+sudokuString)
 	
-	return sudokuString
+	return sudoku
  
 
 @route('/search', method='POST')
@@ -62,10 +64,12 @@ def do_search():
 
 @route('/solve/<sudokuString>')
 def solveSudoku(sudokuString):
+	print "In solve, got string" + sudokuString
+
 	answerString = ""
 	prolog = Prolog()
 	prolog.consult('sudoku.pl')
-	for result in prolog.query("sudoku(X)"):
+	for result in prolog.query("sudoku(" + sudokuString + ")."):
 		r = result["X"]
 		for i, letter in enumerate(letters):
 			print letter, "=", r[i]
