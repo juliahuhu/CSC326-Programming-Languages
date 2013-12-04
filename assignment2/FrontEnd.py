@@ -46,7 +46,7 @@ def solve():
 		if digit.isdigit():
 			sudoku.append(digit)
 		else:
-			sudoku.append("0")
+			sudoku.append("_")
 	sudokuString +=  ",".join(sudoku)
 	print sudokuString
 	sudokuString += "]"
@@ -62,6 +62,20 @@ def do_search():
 	return s1
 	#redirect('/search/0/'+ userinput)
 
+queryS = """ puzzle = [  
+   [8,_,_,_,_,_,_,_,_],  
+   [_,_,3,6,_,_,_,_,_],  
+   [_,7,_,_,9,_,2,_,_],  
+   [_,5,_,_,_,7,_,_,_],  
+   [_,_,_,_,4,5,7,_,_],  
+   [_,_,_,1,_,_,_,3,_],  
+   [_,_,1,_,_,_,_,6,8],  
+   [_,_,8,5,_,_,_,1,_],  
+   [_,9,_,_,_,_,4,_,_]  
+   ],  
+   puzzle = [A,B,C,D,E,F,G,H,I],  
+   sudoku([A,B,C,D,E,F,G,H,I]).
+"""
 @route('/solve/<sudokuString>')
 def solveSudoku(sudokuString):
 	print "In solve, got string" + sudokuString
@@ -69,13 +83,16 @@ def solveSudoku(sudokuString):
 	answerString = ""
 	prolog = Prolog()
 	prolog.consult('sudoku.pl')
-	for result in prolog.query("sudoku(" + sudokuString + ")."):
+	queryString = "Puzzle = [" + sudokuString + ",  Puzzle = [A,B,C,D,E,F,G,H,I],  sudoku([A,B,C,D,E,F,G,H,I]).  "
+
+	#for result in prolog.query(queryString):
+	for result in prolog.query(queryS):
 		r = result["X"]
 		for i, letter in enumerate(letters):
 			print letter, "=", r[i]
 
 	print "That's all..."
-	return sudokuString
+	return queryS
 
 
 @route('/search/<pageid>/<userinput>')
