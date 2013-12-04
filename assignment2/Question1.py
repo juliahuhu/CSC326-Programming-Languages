@@ -3,7 +3,7 @@ from pyswip import Prolog
 
 #variable definitions
 sudokuFormH = ''' <form action ="/solve" method="post">'''
-sudokuFromEnd = '''<input value = "Search" type="submit" /> </form> '''
+sudokuFromEnd = '''<input value = "Solve!" type="submit" /> </form> '''
 
 ######Pages##########
 @route('/')
@@ -55,14 +55,17 @@ def solveSudoku(sudokuString):
 	prolog = Prolog()
 	prolog.consult('sudokusolver.pl')
 	queryString = "Puzzle = [" + sudokuString + "],  Puzzle = [A,B,C,D,E,F,G,H,I],  sudoku([A,B,C,D,E,F,G,H,I]).  "
-	res =  list(prolog.query(queryString, maxresult=1))
-	final = []
-	cols = ["A","B","C","D","E","F","G","H","I"]
-	for col in cols:
-		final.append(" ".join(map( str,res[0][col])))
-	
-	return "<br>".join(final)
-	return queryString
+	res =  list(prolog.query(queryString, maxresult=1))	
+	if not res:
+		#results is empty
+		return "Invalid Sudoku"
+	else:	
+		final = []
+		cols = ["A","B","C","D","E","F","G","H","I"]
+		for col in cols:
+			final.append(" ".join(map( str,res[0][col])))
+			
+		return "<br>".join(final)
 
 run(host="localhost", port="8080", debug=True)
 
