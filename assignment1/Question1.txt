@@ -1,0 +1,60 @@
+1(a)
+<while-statement> ::= "while" "("<boolean-expression>"){"
+    <statements>
+"}"
+
+1(b) 
+<boolean-expression> ::= 
+<boolean>
+|"not" <boolean-expression>
+| <boolean-AND-expression>
+| <boolean-OR-expression>
+
+<boolean-AND-expression> ::=  <boolean-expression> “and” <boolean-expression>
+<boolean-OR-expression> ::= <boolean-expression> “or” <boolean-expression>
+                    
+                        
+1(c)
+<arithmetic-operator> ::= “+” |”-”  |”*” |”/”
+<arithmetic-expression> ::= 
+ <arithmetic-operator>  <arithmetic-expression> <arithmetic-expression>
+|<arithmetic-operator>  <number> <arithmetic-expression>
+|<arithmetic-operator>  <arithmetic-expression> <number>    
+|<arithmetic-operator>  <number> <number>
+
+1(d)
+<arithmetic-operator> ::= “+” |”-”  |”*” |”/”
+<arithmetic-expression> ::= 
+ <arithmetic-operator>  <arithmetic-expression> <arithmetic-expression>
+|<arithmetic-operator>  <val> <arithmetic-expression>
+|<arithmetic-operator>  <arithmetic-expression> <val>    
+|<arithmetic-operator>  <val> <val>
+<val> ::= <id> | <number>
+
+
+1(e)
+start 
+    i = 1;
+    nextFactor7 = 7;
+    nextFactor13 = 13;
+    while (i <= 1000){
+        if(  i == nextFactor7 ) then
+			nextFactor7 = + nextFactor7 7;
+			if( i == nextFactor13) then
+				nextFactor13 = + nextFactor13 13;
+			else
+				print i;
+			fi
+		else
+		if( i == nextFactor13) then
+				print i;
+				nextFactor13 = + nextFactor13 13;
+			else
+				void;
+		fi
+	fi
+	i = + i 1;
+	}
+end
+
+

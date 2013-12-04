@@ -1,13 +1,15 @@
+%Question 2
 all_diff([]).
 all_diff([H|T]):-
     \+member(H,T),
     all_diff(T).
 
+%Question 3
 no_dup( H, Y):-
 	sort(H,Y).
 
+%Question 4
 verify(Sudoku, X):-
-
 Sudoku = [
 S00, S01, S02, S03, S04, S05, S06, S07, S08,
 S10, S11, S12, S13, S14, S15, S16, S17, S18,
