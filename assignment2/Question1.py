@@ -64,8 +64,5 @@ def solveSudoku(sudokuString):
 	return "<br>".join(final)
 	return queryString
 
-def chunk(input, size):
-    return map(None, *([iter(input)] * size))
-
 run(host="localhost", port="8080", debug=True)
 
