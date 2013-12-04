@@ -62,37 +62,24 @@ def do_search():
 	return s1
 	#redirect('/search/0/'+ userinput)
 
-queryS = """ puzzle = [  
-   [8,_,_,_,_,_,_,_,_],  
-   [_,_,3,6,_,_,_,_,_],  
-   [_,7,_,_,9,_,2,_,_],  
-   [_,5,_,_,_,7,_,_,_],  
-   [_,_,_,_,4,5,7,_,_],  
-   [_,_,_,1,_,_,_,3,_],  
-   [_,_,1,_,_,_,_,6,8],  
-   [_,_,8,5,_,_,_,1,_],  
-   [_,9,_,_,_,_,4,_,_]  
-   ],  
-   puzzle = [A,B,C,D,E,F,G,H,I],  
-   sudoku([A,B,C,D,E,F,G,H,I]).
+queryS="""Puzzle=[[8,_,_,_,_,_,_,_,_],[_,_,3,6,_,_,_,_,_],[_,7,_,_,9,_,2,_,_],[_,5,_,_,_,7,_,_,_],[_,_,_,_,4,5,7,_,_],[_,_,_,1,_,_,_,3,_],[_,_,1,_,_,_,_,6,8],[_,_,8,5,_,_,_,1,_],[_,9,_,_,_,_,4,_,2]],Puzzle=[A,B,C,D,E,F,G,H,I],sudoku([A,B,C,D,E,F,G,H,I]).
 """
 @route('/solve/<sudokuString>')
 def solveSudoku(sudokuString):
-	print "In solve, got string" + sudokuString
-
 	answerString = ""
 	prolog = Prolog()
-	prolog.consult('sudoku.pl')
+	prolog.consult('sudokusolver.pl')
 	queryString = "Puzzle = [" + sudokuString + ",  Puzzle = [A,B,C,D,E,F,G,H,I],  sudoku([A,B,C,D,E,F,G,H,I]).  "
 
-	#for result in prolog.query(queryString):
-	for result in prolog.query(queryS):
-		r = result["X"]
-		for i, letter in enumerate(letters):
-			print letter, "=", r[i]
-
-	print "That's all..."
-	return queryS
+	res =  list(prolog.query(queryS, maxresult=1))
+	final = []
+	print res
+	cols = ["A","B","C","D","E","F","G","H","I"]
+	for col in cols:
+		print col, res[0][col]
+		final.append(" ".join(map( str,res[0][col])))
+	print final	
+	return "<br>".join(final)
 
 
 @route('/search/<pageid>/<userinput>')
