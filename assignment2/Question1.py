@@ -55,7 +55,7 @@ def solveSudoku(sudokuString):
 	prolog = Prolog()
 	prolog.consult('sudokusolver.pl')
 	queryString = "Puzzle = [" + sudokuString + "],  Puzzle = [A,B,C,D,E,F,G,H,I],  sudoku([A,B,C,D,E,F,G,H,I]).  "
-	queryString = queryS
+	#queryString = queryS
 	res =  list(prolog.query(queryString, maxresult=1))	
 	print res
 	if not res:
