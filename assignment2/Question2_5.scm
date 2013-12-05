@@ -1,7 +1,7 @@
 #! /usr/bin/env racket
 
 #lang scheme
-;;; Question 2a
+;;; Question 2b
 (define (someFunction num)
 	(or (even? num) (= (remainder num 3) 0))
 )
